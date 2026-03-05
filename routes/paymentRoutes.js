@@ -1,40 +1,25 @@
 const express = require ("express");
+const Razorpay = require ("razorpay");
 const router = express.Router();
 
-router.post("/", async (req,res)=>{
-    try { 
-        const {userId,items,totalAmount,
-            paymentMethod } =req.body;
-
-            if(!userId || !items || !totalAmount){
-                return res.status(400).json({
-                    success:false,
-                    message:"Missing required fields",
-                });
-            }
-            const order = {
-                orderId: "ORD"+Date.now(),
-                userId,
-                items,
-                totalAmount,
-                paymentMethod:paymentMethod || "COD",
-                paymentStatus: "Success",
-                createAt:new Date(),
-            };
-            console.log("New Order :",order);
-            res.status(200).json({
-                success: true,
-                message:"Payment successful",order,
-            });
-        
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+router.post("/create-order",async (req,res)=>{
+    try {
+        console.log("Amount received from frontend:",req.body.amount);
+        const amount =Math.round(Number(req.body.amount)*100);
+        const options = {
+            amount :amount,
+            currency :"INR",
+            receipt:"receipt_"+Date.now(),
+        };
+        const order = await razorpay.orders.create(options);
+        res.json(order);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success:false,
-            message: "Server error",
-        });
-        
+        res.status(500).json({error:error.message}); 
     }
 });
 
-module.exports= router;
+module.exports =router;
